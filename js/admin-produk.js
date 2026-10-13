@@ -1,6 +1,6 @@
 const $=s=>document.querySelector(s),idr=n=>'Rp '+Number(n||0).toLocaleString('id-ID');
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const F=['id','name','cat','price','old','stok','badge','status','img','tag','berat','desc'];let LIST=[];
+const F=['id','name','cat','price','old','stok','badge','status','img','tag','berat','desc','hargaGrosir','minQtyGrosir','hargaAgen','minQtyAgen'];let LIST=[];
 function toast(m){$('#toast').textContent=m;setTimeout(()=>$('#toast').textContent='',3000)}
 async function post(body){const d=await fetch(STORE_CONFIG.apiUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({token:adminToken(),...body})}).then(r=>r.json());if(!d.ok){if(d.error==='Unauthorized')resetToken();throw Error(d.error==='Unauthorized'?'PIN salah, refresh lalu coba lagi':d.error)}return d}
 async function load(){try{const q=new URLSearchParams({action:'adminProducts',token:adminToken()});const d=await fetch(STORE_CONFIG.apiUrl+'?'+q,{cache:'no-store'}).then(r=>r.json());if(!d.ok){if(d.error==='Unauthorized')resetToken();throw Error(d.error==='Unauthorized'?'PIN salah, refresh lalu coba lagi':d.error)}LIST=d.products;

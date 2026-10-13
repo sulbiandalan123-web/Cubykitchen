@@ -4,7 +4,8 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const icons=()=>window.lucide&&lucide.createIcons();
 
 /* foto + fallback svg */
-const art=p=>`${p.art?`<svg viewBox="0 0 240 240" aria-hidden="true"><use href="#${p.art}"/></svg>`:''}${p.img?`<img src="${String(p.img).replace(/"/g,'&quot;')}" alt="${String(p.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.remove()">`:''}`;
+const EMO=p=>{const t=((p.name||'')+' '+(p.cat||'')).toLowerCase();return /beras|tepung/.test(t)?'🌾':/minyak/.test(t)?'🫙':/gula|garam/.test(t)?'🧂':/telur/.test(t)?'🥚':/lada|merica|cabai|cabe/.test(t)?'🌶️':/kunyit|jahe/.test(t)?'🫚':/kayu manis|cengkeh|pala|kapulaga|ketumbar|salam|rempah/.test(t)?'🌿':/kecap|saus|santan|bumbu/.test(t)?'🥫':/mi |mie/.test(t)?'🍜':'🛒'};
+const art=p=>`${(!p.art&&!p.img)?`<span class="eph" aria-hidden="true">${EMO(p)}</span>`:''}${p.art?`<svg viewBox="0 0 240 240" aria-hidden="true"><use href="#${p.art}"/></svg>`:''}${p.img?`<img src="${String(p.img).replace(/"/g,'&quot;')}" alt="${String(p.name||'').replace(/"/g,'&quot;')}" loading="lazy" onerror="this.remove()">`:''}`;
 
 /* ================= TOAST ================= */
 function toast(msg,ok=true){
@@ -50,7 +51,7 @@ function renderCart(){
         </div>
       </div>
       <div class="cright">
-        <p class="pprice"><b>${idr(p.price*q)}</b></p>
+        <p class="pprice"><b>${idr(unitPrice(p,q)*q)}</b></p>
         <button class="rm" data-act="rm" data-id="${id}" aria-label="Hapus"><i data-lucide="trash-2" class="ic"></i></button>
       </div>
     </div>`}).join('');
@@ -93,16 +94,19 @@ let LOCAL_ZONES=(SETTINGS.shipping&&SETTINGS.shipping.localZones)||{'Zona 1':500
 let co={delivery:'AMBIL',zone:'',pay:'cash'};
 const PAY={cash:{label:'Tunai saat ambil/terima',flow:'Bayar tunai saat barang diterima',icon:'banknote'},transfer:{label:'Transfer bank',flow:'Admin mengirim instruksi pembayaran',icon:'wallet'}};
 function safeText(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function totals(){let sub=0;cart.forEach((q,id)=>{const p=byId(id);if(p)sub+=Number(p.price||0)*q});const ship=co.delivery==='ANTAR'?Number(LOCAL_ZONES[co.zone]||0):0;return{sub,ship,total:sub+ship};}
-function fillZoneOptions(){const el=$('#agCity');if(!el)return;const old=el.value;el.innerHTML='<option value="">Pilih zona antar</option>'+Object.entries(LOCAL_ZONES).map(([k,v])=>`<option value="${safeText(k)}">${safeText(k)} — ${idr(Number(v)||0)}</option>`).join('');if(old&&LOCAL_ZONES[old]!=null)el.value=old;}
+function unitPrice(p,q){const g=Number(p.hargaGrosir)||0,m=Number(p.minQtyGrosir)||0;return g>0&&m>0&&g<Number(p.price)&&q>=m?g:Number(p.price||0)}
+function zoneTag(z){const m=String(z||'').match(/\(([^)]+)\)\s*$/);return m?m[1]:''}
+function shipInfo(sub){if(co.delivery!=='ANTAR')return{fee:0,base:0,free:false,freeMin:0,minDel:0};const S=SETTINGS.shipping||{};const base=Number(LOCAL_ZONES[co.zone]||0);const fm=Number((S.freeShip||{})[zoneTag(co.zone)]||0);const free=base>0&&fm>0&&sub>=fm;return{fee:free?0:base,base,free,freeMin:fm,minDel:Number(S.minDelivery||0)}}
+function totals(){let sub=0;cart.forEach((q,id)=>{const p=byId(id);if(p)sub+=unitPrice(p,q)*q});const info=shipInfo(sub);return{sub,ship:info.fee,info,total:sub+info.fee};}
+function fillZoneOptions(){const el=$('#agCity');if(!el)return;const old=el.value;el.innerHTML='<option value="">Pilih kecamatan tujuan</option>'+Object.entries(LOCAL_ZONES).map(([k,v])=>`<option value="${safeText(k)}">${safeText(k)} — ${idr(Number(v)||0)}</option>`).join('');if(old&&LOCAL_ZONES[old]!=null)el.value=old;}
 function renderCheckout(){
   fillZoneOptions();
   const delivery=$('#deliveryMethod');if(delivery)delivery.value=co.delivery;
   $('#deliveryAddress').hidden=co.delivery!=='ANTAR';
   $('#agentStoreField').hidden=$('#customerType').value!=='AGEN';
   $('#payCards').innerHTML=Object.entries(PAY).map(([k,m])=>`<button type="button" class="paycard${co.pay===k?' on':''}" data-pay="${k}"><span class="pc-name"><i data-lucide="${m.icon}" class="ic"></i>${m.label}</span><span class="pc-flow">${m.flow}</span></button>`).join('');
-  const t=totals();
-  $('#coSum').innerHTML=`<div class="srow"><span>Subtotal barang</span><span>${idr(t.sub)}</span></div><div class="srow"><span>${co.delivery==='ANTAR'?'Ongkir '+safeText(co.zone||'zona belum dipilih'):'Ambil di toko'}</span><span>${t.ship?idr(t.ship):'Rp 0'}</span></div><div class="srow total"><span>Total pesanan</span><span>${idr(t.total)}</span></div><p class="conote">Harga dan stok akan diverifikasi ulang oleh server saat pesanan dikirim.</p>`;
+  const t=totals();const I=t.info;const hint=co.delivery==='ANTAR'&&co.zone?(I.free?'<p class="conote">🎉 Gratis ongkir untuk kecamatan ini.</p>':(I.freeMin>t.sub?`<p class="conote">Belanja ${idr(I.freeMin-t.sub)} lagi untuk gratis ongkir.</p>`:'')+(I.minDel>t.sub?`<p class="conote" style="color:#B91C1C">Minimal belanja untuk diantar ${idr(I.minDel)}.</p>`:'')):'';
+  $('#coSum').innerHTML=`<div class="srow"><span>Subtotal barang</span><span>${idr(t.sub)}</span></div><div class="srow"><span>${co.delivery==='ANTAR'?'Ongkir '+safeText(co.zone||'zona belum dipilih'):'Ambil di toko'}</span><span>${co.delivery==='ANTAR'&&I.free?'Gratis':(t.ship?idr(t.ship):'Rp 0')}</span></div><div class="srow total"><span>Total pesanan</span><span>${idr(t.total)}</span></div>${hint}<p class="conote">Harga dan stok akan diverifikasi ulang oleh server saat pesanan dikirim.</p>`;
   icons();
 }
 $('#coBody').addEventListener('click',e=>{const p=e.target.closest('[data-pay]');if(p){co.pay=p.dataset.pay;renderCheckout();}});
@@ -113,14 +117,15 @@ $('#coForm').addEventListener('submit',async e=>{
  e.preventDefault(); if(!cart.size){toast('Keranjang masih kosong',false);showView('cart');return;}
  const type=$('#customerType').value, name=$('#agName').value.trim(), wa=$('#agWa').value.trim(), store=$('#agentStore').value.trim(), addr=$('#agAddr').value.trim();
  if(name.length<2||!/^[0-9+()\-\s]{8,18}$/.test(wa)){toast('Isi nama dan nomor WhatsApp yang valid',false);return;}
- if(type==='AGEN'&&store.length<2){toast('Nama toko wajib diisi untuk pengajuan agen',false);return;}
- if(co.delivery==='ANTAR'&&(!co.zone||!addr||addr.length<6)){toast('Pilih zona dan isi alamat antar lengkap',false);return;}
+ if(type==='AGEN'&&store.length<2){toast('Nama toko wajib diisi untuk pengajuan reseller',false);return;}
+ if(co.delivery==='ANTAR'&&(!co.zone||!addr||addr.length<6)){toast('Pilih kecamatan dan isi alamat antar lengkap',false);return;}
+ if(co.delivery==='ANTAR'&&totals().sub<Number((SETTINGS.shipping||{}).minDelivery||0)){toast('Minimal belanja untuk diantar '+idr(Number(SETTINGS.shipping.minDelivery)),false);return;}
  const items=[...cart].map(([id,qty])=>({id,qty}));
  const payload={action:'order',requestId:(window.crypto&&crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(16).slice(2)),customer:{name,wa,type,store},shipping:{method:co.delivery,zone:co.delivery==='ANTAR'?co.zone:'',address:co.delivery==='ANTAR'?addr:''},payment:{key:co.pay,label:PAY[co.pay].label},items};
  const btn=e.submitter||$('#coForm button[type="submit"]');if(btn){btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent='Memeriksa stok…';}
  try{const res=await fetch(STORE_CONFIG.apiUrl,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});const data=await res.json();if(!data.ok)throw new Error(data.error||'Pesanan gagal disimpan');
- $('#orderNo').textContent=data.orderNo;$('#waNote').textContent=type==='AGEN'?(data.agentStatus==='MENUNGGU_PERSETUJUAN'?'Pengajuan agen tercatat menunggu persetujuan admin.':'Pesanan tercatat.'):'Pesanan tercatat. Simpan nomor pesanan untuk referensi.';
- const t=data.totals||{};$('#orderRecap').innerHTML=`<div class="srow"><span>Jenis pelanggan</span><span>${type==='AGEN'?'Pengajuan agen':'Eceran'}</span></div><div class="srow"><span>Pengambilan</span><span>${co.delivery==='AMBIL'?'Ambil di toko':'Antar lokal — '+safeText(co.zone)}</span></div><div class="srow"><span>Pembayaran</span><span>${PAY[co.pay].label}</span></div><div class="srow"><span>Total</span><span>${idr(Number(t.total)||0)}</span></div>`;
+ $('#orderNo').textContent=data.orderNo;$('#waNote').textContent=type==='AGEN'?(data.agentStatus==='MENUNGGU_PERSETUJUAN'?'Pengajuan reseller tercatat menunggu persetujuan admin.':'Pesanan tercatat.'):'Pesanan tercatat. Simpan nomor pesanan untuk referensi.';
+ const t=data.totals||{};$('#orderRecap').innerHTML=`<div class="srow"><span>Jenis pelanggan</span><span>${type==='AGEN'?'Pengajuan reseller':'Eceran'}</span></div><div class="srow"><span>Pengambilan</span><span>${co.delivery==='AMBIL'?'Ambil di toko':'Antar lokal — '+safeText(co.zone)}</span></div><div class="srow"><span>Pembayaran</span><span>${PAY[co.pay].label}</span></div><div class="srow"><span>Total</span><span>${idr(Number(t.total)||0)}</span></div>`;
  localStorage.setItem('cuby_customer',JSON.stringify({name,wa}));cart.clear();save();renderCart();updateBadge();showView('done');toast('Pesanan berhasil dicatat');
  }catch(err){console.error(err);toast(err.message||'Pesanan gagal. Periksa koneksi dan Apps Script.',false);}finally{if(btn){btn.disabled=false;btn.textContent=btn.dataset.oldText||'Konfirmasi Pesanan';}}
 });
@@ -202,6 +207,7 @@ const cellHTML=(p,i)=>`
     <p class="pcat">${p.cat}</p>
     <h3>${p.name}</h3>
     <div class="pprice">${p.old?`<s>${idr(p.old)}</s>`:''}<b>${idr(p.price)}</b></div>
+    ${Number(p.hargaGrosir)>0&&Number(p.minQtyGrosir)>0?`<p class="pgros">Grosir ${idr(p.hargaGrosir)} · min ${p.minQtyGrosir}</p>`:''}
     <div class="pmeta"><i data-lucide="star" class="ic star"></i><b>${p.rating}</b><span>· ${p.sold} terjual</span></div>
     <p class="ploc"><i data-lucide="map-pin" class="ic"></i>${esc(SETTINGS.store.location)}</p>
   </div>
@@ -335,7 +341,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 function cartKg(){let g=0;cart.forEach((q,id)=>{const p=byId(id);if(p)g+=(Number(p.berat)||0)*q});return Math.max(1,Math.ceil(g/1000))}
 
 function fillTxt(t){const S=SETTINGS,W=S.warranty;return String(t||'').replace(/\{garansi\}/g,W.months).replace(/\{uji\}/g,W.testHours).replace(/\{retur\}/g,W.returnDays).replace(/\{freeMin\}/g,idr(FREE_MIN)).replace(/\{lokasi\}/g,S.store.location)}
-function renderMarquee(){const items=['SEMBako & KEBUTUHAN HARIAN','AMBIL DI TOKO TANPA ONGKIR','ANTAR LOKAL SESUAI ZONA','HARGA AGEN UNTUK AGEN YANG DISETUJUI','PEMBAYARAN TUNAI ATAU TRANSFER'];$('#marqTrack').innerHTML=items.map(t=>`<span>${t}</span><span class="mdot"></span>`).join('').repeat(6)}
+function renderMarquee(){const items=['REMPAH & SEMBAKO LENGKAP','HARGA GROSIR OTOMATIS','ANTAR SELURUH KOTA SEMARANG','GRATIS ONGKIR ZONA 1 & 2','TUNAI ATAU TRANSFER'];$('#marqTrack').innerHTML=items.map(t=>`<span>${t}</span><span class="mdot"></span>`).join('').repeat(6)}
 function applySettings(){
   const S=SETTINGS,W=S.warranty||{months:0,testHours:0};
   LOCAL_ZONES=(S.shipping&&S.shipping.localZones)||LOCAL_ZONES;
@@ -346,8 +352,8 @@ function applySettings(){
   const a=[S.store?.location,S.store?.address].filter(Boolean).join(' · '), ft=$('#ftLoc');
   if(ft)ft.innerHTML=/^https?:\/\//.test(S.store?.mapsUrl||'')?`<a href="${esc(S.store.mapsUrl)}" target="_blank" rel="noopener">${esc(a)}</a>`:esc(a);
   const shipTable=$('#shipTable');
-  if(shipTable)shipTable.innerHTML=`<div class="shrow head" style="grid-template-columns:1fr 1fr"><div>Zona antar lokal</div><div>Tarif</div></div>`+Object.entries(LOCAL_ZONES).map(([z,v])=>`<div class="shrow" style="grid-template-columns:1fr 1fr"><div>${esc(z)}</div><div><b>${idr(Number(v)||0)}</b></div></div>`).join('');
-  const note=$('.conote');if(note)note.textContent='Ambil di toko tanpa ongkir. Antar lokal mengikuti tarif zona yang ditetapkan admin.';
+  if(shipTable)shipTable.innerHTML=`<div class="shrow head" style="grid-template-columns:1fr 1fr"><div>Kecamatan tujuan (Kota Semarang)</div><div>Tarif</div></div>`+Object.entries(LOCAL_ZONES).map(([z,v])=>`<div class="shrow" style="grid-template-columns:1fr 1fr"><div>${esc(z)}</div><div><b>${idr(Number(v)||0)}</b></div></div>`).join('');
+  const note=$('.conote');if(note)note.textContent='Ambil di toko tanpa ongkir. Ongkir antar mengikuti kecamatan tujuan; gratis ongkir berlaku di zona dan minimal belanja tertentu.';
   if(S.faq&&S.faq.length){const fw=$('.faqwrap');if(fw)fw.innerHTML=S.faq.map(f=>`<div class="qa"><button class="qa-h"><span>${esc(fillTxt(f.q))}</span><i data-lucide="plus" class="ic"></i></button><div class="qa-b"><div class="qa-i"><p>${esc(fillTxt(f.a))}</p></div></div></div>`).join('');}
   renderMarquee();renderGrid();renderSpot();renderHero();renderCart();if(view==='checkout')renderCheckout();icons();
 }

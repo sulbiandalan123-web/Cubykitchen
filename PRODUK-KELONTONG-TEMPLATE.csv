@@ -1,0 +1,18 @@
+﻿id,no,name,cat,price,old,rating,sold,tag,badge,hot,img,specs,status,stok,berat,unggulan,desc,hargaAgen,minQtyAgen,hargaGrosir,minQtyGrosir
+p1,001,Beras Premium 5 kg,BERAS & TEPUNG,78000,,4.8,0,Beras pulen untuk kebutuhan keluarga sehari-hari.,LARIS,true,,Kemasan 5 kg||Grosir mulai 4 sak,AKTIF,40,5000,true,,71800,8,74000,4
+p2,002,Tepung Terigu 1 kg,BERAS & TEPUNG,13000,,4.8,0,"Serbaguna untuk kue, gorengan, dan mi rumahan.",,false,,Kemasan 1 kg||Simpan di tempat kering,AKTIF,60,1000,false,,11600,20,12000,10
+p3,003,Minyak Goreng 1 L,MINYAK & GULA,18000,,4.8,0,Minyak goreng untuk masak sehari-hari.,FAVORIT,true,,Kemasan 1 liter||Grosir per dus isi 12,AKTIF,80,1000,true,,16500,24,17000,12
+p4,004,Gula Pasir 1 kg,MINYAK & GULA,18000,,4.8,0,Gula pasir untuk minuman dan masakan.,,false,,Kemasan 1 kg,AKTIF,70,1000,false,,16500,20,17000,10
+p5,005,Garam Dapur 250 g,MINYAK & GULA,3500,,4.8,0,Garam beryodium untuk kebutuhan dapur.,,false,,Kemasan 250 gram,AKTIF,100,250,false,,2900,40,3000,20
+p6,006,Lada Hitam Butir 100 g,REMPAH UTUH,15000,,4.8,0,"Lada hitam butir, aroma tajam untuk semur, sup, dan marinasi.",LARIS,true,,Kemasan 100 gram||Simpan tertutup rapat,AKTIF,50,100,true,,13100,20,13500,10
+p7,007,Ketumbar Butir 100 g,REMPAH UTUH,7000,,4.8,0,Dasar bumbu halus masakan Jawa.,,false,,Kemasan 100 gram,AKTIF,50,100,false,,6000,20,6200,10
+p8,008,Kayu Manis Batang 50 g,REMPAH UTUH,9000,,4.8,0,"Untuk wedang, kolak, dan masakan berkuah.",,false,,Kemasan 50 gram,AKTIF,40,50,false,,7800,20,8000,10
+p9,009,Cengkeh 50 g,REMPAH UTUH,9000,,4.8,0,"Pelengkap bumbu kare, semur, dan wedang.",,false,,Kemasan 50 gram,AKTIF,40,50,false,,7800,20,8000,10
+p10,010,Pala Biji 50 g,REMPAH UTUH,12000,,4.8,0,"Untuk sup, bistik, dan kue.",,false,,Kemasan 50 gram,AKTIF,30,50,false,,10200,20,10500,10
+p11,011,Kapulaga 25 g,REMPAH UTUH,8000,,4.8,0,"Wangi untuk gulai, kari, dan minuman hangat.",,false,,Kemasan 25 gram,AKTIF,30,25,false,,6800,20,7000,10
+p12,012,Kunyit Bubuk 100 g,REMPAH BUBUK,8000,,4.8,0,Pewarna alami dan bumbu dasar kuning.,FAVORIT,true,,Kemasan 100 gram,AKTIF,60,100,false,,6800,20,7000,10
+p13,013,Jahe Bubuk 100 g,REMPAH BUBUK,12000,,4.8,0,Untuk wedang jahe dan bumbu masakan.,,false,,Kemasan 100 gram,AKTIF,50,100,false,,10200,20,10500,10
+p14,014,Ketumbar Bubuk 100 g,REMPAH BUBUK,8000,,4.8,0,Praktis untuk bumbu tanpa menghaluskan.,,false,,Kemasan 100 gram,AKTIF,50,100,false,,6800,20,7000,10
+p15,015,Kecap Manis 600 ml,BUMBU DAPUR,22000,,4.8,0,Kecap manis untuk masak dan pelengkap.,,false,,Kemasan 600 ml,AKTIF,40,700,false,,19900,24,20500,12
+p16,016,Daun Salam Kering 25 g,BUMBU DAPUR,3000,,4.8,0,Pelengkap bumbu semur dan gulai.,,false,,Kemasan 25 gram,AKTIF,50,25,false,,2400,40,2500,20
+p17,017,Mi Instan Goreng,MIE & PRAKTIS,3500,,4.8,0,Stok dapur praktis; varian mengikuti ketersediaan.,,false,,Harga contoh per bungkus||Grosir per dus isi 40,AKTIF,120,85,false,,3200,80,3300,40

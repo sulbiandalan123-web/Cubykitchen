@@ -38,7 +38,7 @@ function setup(){
   sheet_('PELANGGAN',['customerId','tanggal','nama','whatsapp','namaToko','tipePelanggan','statusAgen']);
   sheet_('MUTASI_STOK',['mutationId','tanggal','productId','namaProduk','jenisMutasi','qtyMasuk','qtyKeluar','stokSebelum','stokSesudah','orderNo','keterangan']);
   sheet_('LOG_AKTIVITAS',['tanggal','aktor','aksi','orderNo','keterangan']);
-  ensureCols_('PRODUK',['berat','unggulan','desc','hargaAgen','minQtyAgen']);
+  ensureCols_('PRODUK',['berat','unggulan','desc','hargaAgen','minQtyAgen','hargaGrosir','minQtyGrosir']);
   ensureCols_('PESANAN',['tipePelanggan','namaToko','metodeTerima','zonaAntar','statusBayar','requestId']);
   ensureCols_('DETAIL_PESANAN',['hargaNormal','hargaAgen','jenisHarga']);
   return 'OK';
@@ -64,9 +64,9 @@ function auth_(t){ return String(t||'').trim()===ADMIN_PIN_CODE; }
  * 3. Jalankan fungsi testKirimWa sekali (izinkan akses), lalu Deploy > New version.
  * Jika token kosong / gagal kirim, order TETAP tersimpan; hasilnya tercatat di sheet LOG_WA.
  */
-const FONNTE_TOKEN = PropertiesService.getScriptProperties().getProperty('FONNTE_TOKEN') || ''; // atur melalui Script Properties
+const FONNTE_TOKEN = PropertiesService.getScriptProperties().getProperty('FONNTE_TOKEN') || 'pdT1ex8ZjW78iM32QtLE';
 const WA_STORE_NAME = 'Cuby Kitchen';
-const WA_SITE_URL = PropertiesService.getScriptProperties().getProperty('SITE_URL') || ''; // isi Script Property SITE_URL = alamat website (tanpa slash akhir) untuk link lacak pesanan
+const WA_SITE_URL = (PropertiesService.getScriptProperties().getProperty('SITE_URL') || 'https://sulbiandalan123-web.github.io/Cubykitchen').replace(/\/+$/, '');
 
 function rp_(n){ return 'Rp '+String(Math.round(Number(n)||0)).replace(/\B(?=(\d{3})+(?!\d))/g,'.'); }
 function esc_(v){ return String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -218,7 +218,7 @@ function getProducts_(all){
   const h=values.shift().map(String);
   return values.filter(r=>r[0]).filter(r=>all||String(r[h.indexOf('status')]||'').toUpperCase()!=='NONAKTIF').map(r=>{
     const o={}; h.forEach((k,i)=>o[k]=r[i]);
-    o.price=Number(o.price)||0; o.old=Number(o.old)||0; o.rating=String(o.rating||''); o.hot=String(o.hot).toLowerCase()==='true'; o.specs=String(o.specs||'').split('||').filter(Boolean); o.stok=o.stok===''?null:Number(o.stok); o.berat=Number(o.berat)||0; o.unggulan=String(o.unggulan).toLowerCase()==='true'; o.desc=String(o.desc||''); return o;
+    o.price=Number(o.price)||0; o.old=Number(o.old)||0; o.rating=String(o.rating||''); o.hot=String(o.hot).toLowerCase()==='true'; o.specs=String(o.specs||'').split('||').filter(Boolean); o.stok=o.stok===''?null:Number(o.stok); o.berat=Number(o.berat)||0; o.unggulan=String(o.unggulan).toLowerCase()==='true'; o.desc=String(o.desc||''); o.hargaGrosir=Number(o.hargaGrosir)||0; o.minQtyGrosir=Number(o.minQtyGrosir)||0; if(!all){delete o.hargaAgen;delete o.minQtyAgen;} return o;
   });
 }
 function findHeader_(headers, name){ return headers.indexOf(name); }
@@ -240,12 +240,18 @@ function upsertCustomer_(c, type){
 function settingObject_(){
   const s=getSettings_()||{}; return s;
 }
-function serverShippingCost_(shipping){
+// Tarif antar Kota Semarang (toko di Gayamsari / Semarang Timur). Harus sama dengan SETTINGS.shipping di js/config.js.
+const DEFAULT_SHIPPING={minDelivery:30000,freeShip:{'Zona 1':150000,'Zona 2':250000},localZones:{"Gayamsari (Zona 1)": 8000, "Semarang Timur (Zona 1)": 8000, "Pedurungan (Zona 1)": 8000, "Semarang Tengah (Zona 2)": 12000, "Semarang Selatan (Zona 2)": 12000, "Candisari (Zona 2)": 12000, "Genuk (Zona 2)": 12000, "Semarang Utara (Zona 2)": 12000, "Gajahmungkur (Zona 3)": 18000, "Tembalang (Zona 3)": 18000, "Semarang Barat (Zona 3)": 18000, "Banyumanik (Zona 3)": 18000, "Ngaliyan (Zona 4)": 25000, "Tugu (Zona 4)": 25000, "Mijen (Zona 4)": 25000, "Gunungpati (Zona 4)": 25000}};
+function serverShippingCost_(shipping,sub){
   if(shipping.method==='AMBIL') return 0;
   if(shipping.method!=='ANTAR') throw new Error('Metode penerimaan tidak valid');
-  const s=settingObject_(), zones=(s.shipping&&s.shipping.localZones)||{'Zona 1':5000,'Zona 2':10000,'Zona 3':15000};
-  const zone=String(shipping.zone||''); if(!Object.prototype.hasOwnProperty.call(zones,zone)) throw new Error('Zona antar tidak valid. Perbarui pengaturan ongkir toko.');
-  const price=Number(zones[zone]); if(!Number.isFinite(price)||price<0)throw new Error('Tarif zona belum valid'); return Math.round(price);
+  const sh=Object.assign({},DEFAULT_SHIPPING,(settingObject_().shipping)||{}), zones=sh.localZones||DEFAULT_SHIPPING.localZones;
+  const zone=String(shipping.zone||''); if(!Object.prototype.hasOwnProperty.call(zones,zone)) throw new Error('Kecamatan tujuan tidak valid. Pilih kecamatan di Kota Semarang.');
+  const price=Number(zones[zone]); if(!Number.isFinite(price)||price<0)throw new Error('Tarif kecamatan belum valid');
+  const minDel=Number(sh.minDelivery)||0; if(sub<minDel) throw new Error('Minimal belanja untuk diantar Rp '+minDel.toLocaleString('id-ID'));
+  const tag=(zone.match(/\(([^)]+)\)\s*$/)||[])[1]||'', freeMin=Number((sh.freeShip||{})[tag])||0;
+  if(freeMin>0&&sub>=freeMin) return 0;
+  return Math.round(price);
 }
 function saveOrder_(d){
   const c=d.customer||{}, shipping=d.shipping||{}, payment=d.payment||{};
@@ -277,14 +283,16 @@ function saveOrder_(d){
       if(String(v[statusIdx]||'').toUpperCase()==='NONAKTIF')throw new Error('Produk sedang tidak tersedia: '+String(v[nameIdx]));
       const normal=Number(v[priceIdx]);if(!Number.isFinite(normal)||normal<0)throw new Error('Harga produk belum valid: '+String(v[nameIdx]));
       const agentIdx=col('hargaAgen'), minIdx=col('minQtyAgen'); const agent=agentIdx>=0&&v[agentIdx]!==''&&Number(v[agentIdx])>0?Number(v[agentIdx]):normal; const min= minIdx>=0&&Number(v[minIdx])>0?Number(v[minIdx]):1;
-      const qty=merged[id], useAgent=agentPriceAllowed&&qty>=min; const price=useAgent?agent:normal;
+      const grIdx=col('hargaGrosir'), gmIdx=col('minQtyGrosir'); const gros=grIdx>=0&&Number(v[grIdx])>0?Number(v[grIdx]):0, gmin=gmIdx>=0&&Number(v[gmIdx])>0?Number(v[gmIdx]):0;
+      const qty=merged[id], useAgent=agentPriceAllowed&&agent<normal&&qty>=min, useGros=gros>0&&gmin>0&&gros<normal&&qty>=gmin;
+      let price=normal, jenis='ECERAN'; if(useGros){price=gros;jenis='GROSIR';} if(useAgent&&agent<price){price=agent;jenis='AGEN';}
       if(!Number.isFinite(price)||price<0)throw new Error('Harga agen tidak valid: '+String(v[nameIdx]));
       const current=stockIdx>=0&&v[stockIdx]!==''&&v[stockIdx]!==null?Number(v[stockIdx]):null;
       if(current!==null&&(!Number.isFinite(current)||current<qty))throw new Error('Stok '+String(v[nameIdx])+' tidak mencukupi. Stok tersedia: '+current);
-      const line=price*qty;sub+=line;details.push({id,name:String(v[nameIdx]||id),qty,price,normal,agent,useAgent,line,row:p.row,stock:current});
+      const line=price*qty;sub+=line;details.push({id,name:String(v[nameIdx]||id),qty,price,normal,agent,useAgent:jenis==='AGEN',jenis,line,row:p.row,stock:current});
       if(current!==null)stockChanges.push({row:p.row,id,name:String(v[nameIdx]||id),before:current,after:current-qty,qty});
     });
-    const ship=serverShippingCost_(shipping), total=sub+ship;
+    const ship=serverShippingCost_(shipping,sub), total=sub+ship;
     const customerStatus=upsertCustomer_({name,wa,store:String(c.store||'').trim()},type);
     const no='CUBY-'+Utilities.formatDate(new Date(),'Asia/Jakarta','yyMMdd')+'-'+Utilities.getUuid().slice(0,6).toUpperCase();
     const orderSheet=ss_().getSheetByName('PESANAN'), oh=orderSheet.getRange(1,1,1,orderSheet.getLastColumn()).getValues()[0].map(String), row=Array(oh.length).fill('');
@@ -293,7 +301,7 @@ function saveOrder_(d){
     ensureCols_('PESANAN',['statusAgen']); const oh2=orderSheet.getRange(1,1,1,orderSheet.getLastColumn()).getValues()[0].map(String); if(row.length!==oh2.length)row.length=oh2.length; oh2.forEach((k,i)=>{if(Object.prototype.hasOwnProperty.call(vals,k))row[i]=vals[k]});
     orderSheet.appendRow(row);
     const ds=ss_().getSheetByName('DETAIL_PESANAN'), dh=ds.getRange(1,1,1,ds.getLastColumn()).getValues()[0].map(String);
-    details.forEach(it=>{const r=Array(dh.length).fill(''), dv={orderNo:no,productId:it.id,productName:it.name,qty:it.qty,harga:it.price,subtotal:it.line,hargaNormal:it.normal,hargaAgen:it.agent,jenisHarga:it.useAgent?'AGEN':'ECERAN'};dh.forEach((k,i)=>{if(Object.prototype.hasOwnProperty.call(dv,k))r[i]=dv[k]});ds.appendRow(r);});
+    details.forEach(it=>{const r=Array(dh.length).fill(''), dv={orderNo:no,productId:it.id,productName:it.name,qty:it.qty,harga:it.price,subtotal:it.line,hargaNormal:it.normal,hargaAgen:it.agent,jenisHarga:it.jenis};dh.forEach((k,i)=>{if(Object.prototype.hasOwnProperty.call(dv,k))r[i]=dv[k]});ds.appendRow(r);});
     stockChanges.forEach(sc=>{const stc=col('stok');ps.getRange(sc.row,stc+1).setValue(sc.after);ss_().getSheetByName('MUTASI_STOK').appendRow(['MUT-'+Utilities.getUuid().slice(0,8),new Date(),sc.id,sc.name,'PENJUALAN',0,sc.qty,sc.before,sc.after,no,'Pengurangan stok dari checkout']);});
     ss_().getSheetByName('LOG_AKTIVITAS').appendRow([new Date(),'SISTEM','PESANAN_BARU',no,'Checkout tervalidasi server']);
     waItems=details.map(it=>({id:it.id,name:it.name,qty:it.qty,price:it.price}));
@@ -406,7 +414,7 @@ function saveProduct_(d){
     let row=0; if(p.id){ for(let i=1;i<v.length;i++) if(String(v[i][0])===String(p.id)){row=i+1;break;} }
     if(!row){ p.id='p'+Date.now().toString(36); p.no=String(v.length).padStart(3,'0'); if(p.rating===undefined)p.rating='5.0'; if(p.sold===undefined)p.sold='0'; }
     if(Array.isArray(p.specs)) p.specs=p.specs.join('||');
-    p.price=Number(p.price); p.berat=Number(p.berat)||''; p.unggulan=!!p.unggulan; p.old=Number(p.old)||''; p.stok=(p.stok===''||p.stok==null)?'':Number(p.stok);
+    p.price=Number(p.price); p.berat=Number(p.berat)||''; p.unggulan=!!p.unggulan; p.old=Number(p.old)||''; p.hargaGrosir=Number(p.hargaGrosir)||''; p.hargaAgen=Number(p.hargaAgen)||''; p.minQtyAgen=Number(p.minQtyAgen)||''; p.minQtyGrosir=Number(p.minQtyGrosir)||''; p.stok=(p.stok===''||p.stok==null)?'':Number(p.stok);
     const out=h.map((k,i)=>p[k]===undefined?(row?v[row-1][i]:''):p[k]);
     if(row) sh.getRange(row,1,1,h.length).setValues([out]); else sh.appendRow(out);
     return json_({ok:true,id:p.id});

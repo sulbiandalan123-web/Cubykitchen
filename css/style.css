@@ -1,7 +1,7 @@
 :root{
-  --bg:#F4F5F7; --card:#FFFFFF; --green:#03AC0E; --green-d:#039D10; --green-bg:#E8F8EB;
-  --ink:#1B2229; --mut:#6F7278; --line:#E5E7EB; --star:#FFB400;
-  --hot:#F26518; --hot-bg:#FFF1E6; --disc:#E31D1C; --disc-bg:#FDEBEB;
+  --bg:#FBF6EE; --card:#FFFFFF; --green:#B45309; --green-d:#92400E; --green-bg:#FDEFD9;
+  --ink:#2B1D14; --mut:#7A6A5C; --line:#EADFCF; --star:#F59E0B;
+  --hot:#C2410C; --hot-bg:#FFEDD5; --disc:#E31D1C; --disc-bg:#FDEBEB;
   --fb:'Plus Jakarta Sans',sans-serif; --r:12px; --sh:0 1px 4px rgba(0,0,0,.07);
   --sh2:0 8px 24px rgba(0,0,0,.12);
 }
@@ -461,3 +461,8 @@ footer{background:var(--card);border-top:1px solid var(--line);margin-top:30px}
   .ddone h3{font-size:18px}
   .ddone .ono{font-size:11px;letter-spacing:.03em}
 }
+
+/* tema kelontong */
+.eph{position:absolute;inset:0;display:grid;place-items:center;font-size:58px;line-height:1;z-index:0}
+.cthumb,#qvArt{position:relative}.cthumb .eph{font-size:26px}
+.pgros{margin:2px 0 4px;font-size:11px;font-weight:700;color:var(--green-d)}
