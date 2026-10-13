@@ -1,8 +1,8 @@
 // Konfigurasi Cuby Kitchen — Google Sheets
 const STORE_CONFIG = {
   name: "Cuby Kitchen",
-  city: "ISI ALAMAT CUBY KITCHEN",
-  whatsapp: "ISI_NOMOR_WHATSAPP_TOKO",
+  city: "Jl. Griya Prasetya Sel. IV No.148, RT.08/RW.09, Pandean Lamper, Kec. Gayamsari, Kota Semarang, Jawa Tengah 50167",
+  whatsapp: "081329456735",
   currency: "IDR",
   freeShippingMinimum: 300000,
   // URL /exec deployment Apps Script (aman ditaruh di frontend; PIN & token WA JANGAN)
